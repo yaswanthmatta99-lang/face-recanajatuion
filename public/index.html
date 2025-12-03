@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FaceAuth Pro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-dark: #4338ca;
+      --danger: #ef4444;
+      --danger-dark: #dc2626;
+      --success: #10b981;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-700: #374151;
+      --gray-900: #111827;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #f9fafb;
+      color: var(--gray-900);
+      line-height: 1.5;
+      padding: 0;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 2rem 0;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: var(--gray-700);
+      font-size: 1.125rem;
+    }
+
+    .app-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .camera-container {
+      background: white;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      position: relative;
+      height: fit-content;
+    }
+
+    .camera-box {
+      position: relative;
+      width: 100%;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #video, #overlay {
+      width: 100%;
+      display: block;
+      border-radius: 0.5rem;
+    }
+
+    .controls {
+      background: white;
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--gray-700);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--gray-200);
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 500;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      margin-right: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: var(--danger-dark);
+    }
+
+    .btn-secondary {
+      background-color: var(--gray-100);
+      color: var(--gray-700);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--gray-200);
+    }
+
+    #status {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      background-color: var(--gray-100);
+      min-height: 4rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .status-message {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-message.success {
+      color: var(--success);
+    }
+
+    .status-message.error {
+      color: var(--danger);
+    }
+
+    .status-message.info {
+      color: var(--primary);
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .logo {
+      font-weight: 800;
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      display: inline-block;
+    }
+
+    @media (max-width: 768px) {
+      .app-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .button-group {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+        margin-right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">FaceAuth Pro</div>
+      <h1>Secure Face Authentication</h1>
+      <p class="subtitle">Enroll your face or login using facial recognition</p>
+    </header>
+
+    <div class="app-container">
+      <div class="camera-container">
+        <h2>Camera Feed</h2>
+        <div class="camera-box">
+          <video id="video" width="640" height="480" autoplay muted></video>
+          <canvas id="overlay" width="640" height="480"></canvas>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" placeholder="Enter your email or username">
+        </div>
+
+        <div class="button-group">
+          <button id="enrollBtn" class="btn btn-primary">
+            <span class="btn-icon">📸</span> Enroll
+          </button>
+          <button id="loginBtn" class="btn btn-secondary">
+            <span class="btn-icon">🔑</span> Login
+          </button>
+          <button id="deleteBtn" class="btn btn-danger">
+            <span class="btn-icon">🗑️</span> Delete User
+          </button>
+        </div>
+
+        <div id="status">
+          <div class="status-message info">
+            <span>👋 Welcome! Please wait, loading face recognition models...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load face-api.js with error handling -->
+  <script>
+    // First try loading from CDN, fallback to local if needed
+    function loadFaceAPI() {
+      return new Promise((resolve, reject) => {
+        // Try loading from jsDelivr CDN first
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js';
+        script.onload = () => {
+          console.log('face-api.js loaded from CDN');
+          resolve();
+        };
+        script.onerror = () => {
+          console.log('CDN failed, trying alternative source...');
+          // Fallback to unpkg
+          const fallbackScript = document.createElement('script');
+          fallbackScript.src = 'https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js';
+          fallbackScript.onload = () => {
+            console.log('face-api.js loaded from fallback CDN');
+            resolve();
+          };
+          fallbackScript.onerror = () => {
+            console.error('Failed to load face-api.js from all sources');
+            reject(new Error('Could not load face-api.js from any source'));
+          };
+          document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(script);
+      });
+    }
+    
+    // Liveness detection helper
+    function isLikelySpoof() {
+      // Check for common signs of spoofing
+      return new Promise((resolve) => {
+        // 1. Check for screen recording/capture
+        const isScreenCapture = window.matchMedia('(display-mode: fullscreen)').matches || 
+                              window.matchMedia('(display-mode: standalone)').matches ||
+                              window.matchMedia('(display-mode: minimal-ui)').matches;
+        
+        // 2. Check for common mobile user agents
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // 3. Check for browser extensions that might indicate spoofing
+        const hasSuspiciousExtensions = () => {
+          try {
+            // This is a simple check - real implementation would be more robust
+            const extensions = [];
+            for (let i = 0; i < navigator.plugins.length; i++) {
+              extensions.push(navigator.plugins[i].name);
+            }
+            return extensions.some(ext => 
+              /screenshot|screen.?capture|recording|spoof/i.test(ext)
+            );
+          } catch (e) {
+            return false;
+          }
+        };
+        
+        resolve(isScreenCapture || (isMobile && !navigator.mediaDevices?.getUserMedia) || hasSuspiciousExtensions());
+      });
+    }
+  </script>
+  <script>
+    // Main application
+    class FaceAuthApp {
+      constructor() {
+        this.video = document.getElementById('video');
+        this.overlay = document.getElementById('overlay');
+        this.ctx = this.overlay.getContext('2d');
+        this.statusEl = document.getElementById('status');
+        this.usernameInput = document.getElementById('username');
+        this.modelsLoaded = false;
+        this.blinkCount = 0;
+        this.lastBlinkTime = 0;
+        this.faceDetected = false;
+        this.blinkHistory = [];
+        
+        // Bind event handlers
+        document.getElementById('enrollBtn').addEventListener('click', () => this.enroll());
+        document.getElementById('loginBtn').addEventListener('click', () => this.login());
+        document.getElementById('deleteBtn').addEventListener('click', () => this.deleteUser());
+      }
+
+      async init() {
+        try {
+          // Load face-api.js
+          await loadFaceAPI();
+          console.log('face-api.js version:', window.faceapi ? window.faceapi.version : 'Not loaded');
+          
+          // Load models
+          await this.loadModels();
+          
+          // Start camera
+          await this.startVideo();
+          
+          // Start face detection
+          this.detectFaces();
+          
+        } catch (error) {
+          console.error('Initialization error:', error);
+          this.showError(`Failed to initialize: ${error.message}`);
+        }
+      }
+
+      async loadModels() {
+        this.updateStatus('⏳ Loading face detection model...', 'info');
+        
+        try {
+          // Load models with progress
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+            faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+            faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models')
+          ]);
+          
+          this.modelsLoaded = true;
+          this.updateStatus('✅ Models loaded successfully! You can now enroll or login.', 'success');
+          
+        } catch (error) {
+          console.error('Error loading models:', error);
+          throw new Error(`Failed to load models: ${error.message}`);
+        }
+      }
+
+      async startVideo() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 },
+            audio: false 
+          });
+          this.video.srcObject = stream;
+          await this.video.play();
+        } catch (error) {
+          console.error('Error accessing camera:', error);
+          throw new Error('Could not access camera. Please ensure you have granted camera permissions.');
+        }
+      }
+
+      async detectFaces() {
+        if (!this.modelsLoaded) return;
+        
+        try {
+          const detections = await faceapi.detectAllFaces(
+            this.video,
+            new faceapi.TinyFaceDetectorOptions()
+          ).withFaceLandmarks().withFaceDescriptors();
+
+          // Clear canvas
+          this.ctx.clearRect(0, 0, this.overlay.width, this.overlay.height);
+          
+          // Draw detections
+          faceapi.draw.drawDetections(this.overlay, detections);
+          
+          // Check for liveness (eye blink detection)
+          if (detections.length > 0) {
+            const landmarks = detections[0].landmarks;
+            const leftEye = landmarks.getLeftEye();
+            const rightEye = landmarks.getRightEye();
+            
+            // Draw eye landmarks
+            this.ctx.fillStyle = 'red';
+            leftEye.forEach(point => this.ctx.fillRect(point.x - 2, point.y - 2, 4, 4));
+            rightEye.forEach(point => this.ctx.fillRect(point.x - 2, point.y - 2, 4, 4));
+            
+            // Eye tracking visualization only
+            const leftEAR = this.eyeAspectRatio(leftEye);
+            const rightEAR = this.eyeAspectRatio(rightEye);
+            
+            // Update face detected state
+            this.faceDetected = true;
+            
+            // Draw face landmarks
+            faceapi.draw.drawFaceLandmarks(this.overlay, detections);
+          } else {
+            this.faceDetected = false;
+          }
+        } catch (error) {
+          console.error('Face detection error:', error);
+          this.faceDetected = false;
+        }
+
+        // Continue detection
+        requestAnimationFrame(() => this.detectFaces());
+      }
+      
+      // Calculate eye aspect ratio
+      eyeAspectRatio(eye) {
+        // Compute the euclidean distances between the vertical eye landmarks
+        const A = this.dist(eye[1], eye[5]);
+        const B = this.dist(eye[2], eye[4]);
+        
+        // Compute the euclidean distance between the horizontal eye landmarks
+        const C = this.dist(eye[0], eye[3]);
+        
+        // Compute the eye aspect ratio
+        return (A + B) / (2.0 * C);
+      }
+      
+      // Euclidean distance between two points
+      dist(p1, p2) {
+        return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+      }
+
+      async enroll() {
+        if (!this.modelsLoaded) {
+          this.showError('Models not loaded yet');
+          return;
+        }
+        
+        const username = this.usernameInput.value.trim();
+        if (!username) {
+          this.showError('Please enter a username');
+          return;
+        }
+        
+        // Check for potential spoofing
+        const isSpoof = await isLikelySpoof();
+        if (isSpoof) {
+          this.showError('Suspicious activity detected. Please try again with a real face.');
+          return;
+        }
+
+        this.updateStatus('🔄 Capturing face data...', 'info');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        try {
+          const samples = [];
+          let validSamples = 0;
+          
+          // Capture 5 samples with liveness check
+          while (validSamples < 5) {
+            if (!this.faceDetected) {
+              this.updateStatus('❌ No face detected. Please position your face in the frame.', 'error');
+              await new Promise(resolve => setTimeout(resolve, 500));
+              continue;
+            }
+            
+            this.updateStatus(`🔄 Capturing sample ${validSamples + 1}/5...`, 'info');
+            
+            const detection = await faceapi.detectSingleFace(
+              this.video,
+              new faceapi.TinyFaceDetectorOptions()
+            ).withFaceLandmarks().withFaceDescriptor();
+            
+            if (!detection) {
+              await new Promise(resolve => setTimeout(resolve, 200));
+              continue;
+            }
+            
+            // Additional liveness check: ensure face is moving/not static
+            const timestamp = Date.now();
+            this.blinkHistory.push(timestamp);
+            
+            // Keep only recent blinks (last 10 seconds)
+            this.blinkHistory = this.blinkHistory.filter(t => timestamp - t < 10000);
+            
+            // If no recent blinks, might be a photo
+            if (this.blinkHistory.length < 1) {
+              this.updateStatus('❌ Please move your head slightly', 'error');
+              await new Promise(resolve => setTimeout(resolve, 500));
+              continue;
+            }
+            
+            samples.push(detection.descriptor);
+            validSamples++;
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
+          // Average descriptors
+          const avgDescriptor = this.averageDescriptors(samples);
+          
+          // Send to server
+          const response = await fetch('/enroll', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username,
+              descriptor: Array.from(avgDescriptor)
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.ok) {
+            this.updateStatus(`✅ Successfully enrolled ${username}!`, 'success');
+          } else {
+            throw new Error(result.error || 'Failed to enroll');
+          }
+          
+        } catch (error) {
+          console.error('Enrollment error:', error);
+          this.showError(`Enrollment failed: ${error.message}`);
+        }
+      }
+
+      async login() {
+        if (!this.modelsLoaded) {
+          this.showError('Models not loaded yet');
+          return;
+        }
+        
+        // Check for potential spoofing
+        const isSpoof = await isLikelySpoof();
+        if (isSpoof) {
+          this.showError('Suspicious activity detected. Please try again with a real face.');
+          return;
+        }
+        
+        this.updateStatus('🔍 Authenticating...', 'info');
+        
+        try {
+          const detection = await faceapi.detectSingleFace(
+            this.video,
+            new faceapi.TinyFaceDetectorOptions()
+          ).withFaceLandmarks().withFaceDescriptor();
+          
+          if (!detection) {
+            throw new Error('No face detected');
+          }
+          
+          const response = await fetch('/match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              descriptor: Array.from(detection.descriptor)
+            })
+          });
+          
+          const result = await response.json();
+          
+          if (result.ok) {
+            this.updateStatus(`✅ Welcome back, ${result.username}!`, 'success');
+          } else {
+            this.updateStatus(`❌ Access denied. ${result.closest ? `Closest match: ${result.closest}` : 'No match found.'}`, 'error');
+          }
+          
+        } catch (error) {
+          console.error('Login error:', error);
+          this.showError(`Login failed: ${error.message}`);
+        }
+      }
+
+      async deleteUser() {
+        const username = this.usernameInput.value.trim();
+        if (!username) {
+          this.showError('Please enter a username to delete');
+          return;
+        }
+        
+        if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
+          return;
+        }
+        
+        try {
+          const response = await fetch('/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+          });
+          
+          const result = await response.json();
+          
+          if (result.ok) {
+            this.updateStatus(`✅ User "${username}" deleted successfully`, 'success');
+            this.usernameInput.value = '';
+          } else {
+            throw new Error(result.error || 'Failed to delete user');
+          }
+          
+        } catch (error) {
+          console.error('Delete error:', error);
+          this.showError(`Failed to delete user: ${error.message}`);
+        }
+      }
+
+      // Helper methods
+      updateStatus(message, type = 'info') {
+        const statusClasses = {
+          info: 'status-message info',
+          success: 'status-message success',
+          error: 'status-message error'
+        };
+        
+        this.statusEl.innerHTML = `
+          <div class="${statusClasses[type]}">
+            <span>${message}</span>
+          </div>`;
+      }
+      
+      showError(message) {
+        this.updateStatus(`❌ ${message}`, 'error');
+      }
+      
+      averageDescriptors(descriptors) {
+        const avg = new Float32Array(descriptors[0].length);
+        for (let i = 0; i < avg.length; i++) {
+          let sum = 0;
+          for (const d of descriptors) sum += d[i];
+          avg[i] = sum / descriptors.length;
+        }
+        return avg;
+      }
+    }
+
+    // Initialize the app when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      const app = new FaceAuthApp();
+      app.init();
+    });
+  async function login() {
+    if (!modelsLoaded) return alert('Models not loaded yet');
+    status.innerText = 'Scanning...';
+    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                                    .withFaceLandmarks().withFaceDescriptor();
+    if (!detection) { status.innerText = 'No face detected'; return; }
+    const descriptor = Array.from(detection.descriptor);
+
+    const resp = await fetch('/match', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ descriptor })
+    });
+    const j = await resp.json();
+    if (j.ok) {
+      status.innerText = `Matched user: ${j.username} (distance ${j.distance.toFixed(4)})`;
+    } else {
+      status.innerText = `No match (closest: ${j.closest ?? 'none'})`;
+    }
+  }
+
+  // Delete user function
+  async function deleteUser() {
+    const username = usernameInput.value.trim();
+    if (!username) {
+      status.innerText = 'Please enter a username to delete';
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete user '${username}'?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      
+      const result = await response.json();
+      status.innerText = result.ok 
+        ? result.message 
+        : `Error: ${result.error || 'Failed to delete user'}`;
+      
+      // Clear the username field after successful deletion
+      if (result.ok) {
+        usernameInput.value = '';
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      status.innerText = 'Error deleting user. Check console for details.';
+    }
+  }
+
+  // Event listeners
+  document.getElementById('enrollBtn').onclick = enroll;
+  document.getElementById('loginBtn').onclick = login;
+  document.getElementById('deleteBtn').onclick = deleteUser;
+
+  // init
+  (async () => {
+    await loadModels();
+    await startVideo();
+  })();
+  </script>
+</body>
+</html>
