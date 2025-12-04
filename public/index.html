@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #4f46e5;
+      --primary: #120d7c;
       --primary-dark: #4338ca;
       --danger: #ef4444;
       --danger-dark: #dc2626;
@@ -249,9 +249,6 @@
           <button id="enrollBtn" class="btn btn-primary">
             <span class="btn-icon">📸</span> Enroll
           </button>
-          <button id="loginBtn" class="btn btn-secondary">
-            <span class="btn-icon">🔑</span> Login
-          </button>
           <button id="deleteBtn" class="btn btn-danger">
             <span class="btn-icon">🗑️</span> Delete User
           </button>
@@ -343,10 +340,14 @@
         this.lastBlinkTime = 0;
         this.faceDetected = false;
         this.blinkHistory = [];
+        this.recognizing = false;
+        this.loggedInUser = null;
+        this.lastRecognizeAt = 0;
+        this.suppressReload = false;
+        this.reloadTimer = null;
         
         // Bind event handlers
         document.getElementById('enrollBtn').addEventListener('click', () => this.enroll());
-        document.getElementById('loginBtn').addEventListener('click', () => this.login());
         document.getElementById('deleteBtn').addEventListener('click', () => this.deleteUser());
       }
 
@@ -440,6 +441,23 @@
             
             // Draw face landmarks
             faceapi.draw.drawFaceLandmarks(this.overlay, detections);
+
+            // Auto recognition when a face is present
+            try {
+              const first = detections[0];
+              if (!this.loggedInUser && !this.recognizing && first && first.descriptor) {
+                const now = Date.now();
+                if (now - this.lastRecognizeAt > 1500) { // debounce attempts
+                  this.recognizing = true;
+                  this.lastRecognizeAt = now;
+                  this.autoLogin(first.descriptor).finally(() => {
+                    this.recognizing = false;
+                  });
+                }
+              }
+            } catch (e) {
+              // ignore single frame errors
+            }
           } else {
             this.faceDetected = false;
           }
@@ -450,6 +468,43 @@
 
         // Continue detection
         requestAnimationFrame(() => this.detectFaces());
+      }
+      
+      async autoLogin(descriptor) {
+        // lightweight spoofing check
+        const isSpoof = await isLikelySpoof();
+        if (isSpoof) {
+          this.updateStatus('Suspicious activity detected. Please try with a real face.', 'error');
+          return;
+        }
+
+        this.updateStatus('🔍 Authenticating...', 'info');
+
+        try {
+          const response = await fetch('/match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ descriptor: Array.from(descriptor) })
+          });
+
+          const result = await response.json();
+          if (result.ok) {
+            this.loggedInUser = result.username;
+            this.updateStatus(`✅ Welcome back, ${result.username}! Logged in successfully. Reloading in 8s...`, 'success');
+            // Prepare for next person: reload after 8 seconds, only if not suppressed by an action
+            if (!this.suppressReload) {
+              if (this.reloadTimer) { clearTimeout(this.reloadTimer); }
+              this.reloadTimer = setTimeout(() => {
+                window.location.reload();
+              }, 8000);
+            }
+          } else {
+            this.updateStatus(`❌ Access denied. ${result.closest ? `Closest match: ${result.closest}` : 'No match found.'}`, 'error');
+          }
+        } catch (error) {
+          console.error('Auto login error:', error);
+          this.showError(`Login failed: ${error.message}`);
+        }
       }
       
       // Calculate eye aspect ratio
@@ -475,6 +530,9 @@
           this.showError('Models not loaded yet');
           return;
         }
+        // prevent auto reload during enroll
+        this.suppressReload = true;
+        if (this.reloadTimer) { clearTimeout(this.reloadTimer); this.reloadTimer = null; }
         
         const username = this.usernameInput.value.trim();
         if (!username) {
@@ -551,7 +609,12 @@
           const result = await response.json();
           
           if (result.ok) {
-            this.updateStatus(`✅ Successfully enrolled ${username}!`, 'success');
+            this.updateStatus(`✅ Successfully enrolled ${username}! Reloading in 5s...`, 'success');
+            // Reload after 5 seconds to prepare for recognition of this/new person
+            if (this.reloadTimer) { clearTimeout(this.reloadTimer); }
+            this.reloadTimer = setTimeout(() => {
+              window.location.reload();
+            }, 5000);
           } else {
             throw new Error(result.error || 'Failed to enroll');
           }
@@ -559,6 +622,9 @@
         } catch (error) {
           console.error('Enrollment error:', error);
           this.showError(`Enrollment failed: ${error.message}`);
+        } finally {
+          // re-enable reload for future recognitions
+          this.suppressReload = false;
         }
       }
 
@@ -619,6 +685,9 @@
         if (!confirm(`Are you sure you want to delete user "${username}"?`)) {
           return;
         }
+        // prevent auto reload during delete
+        this.suppressReload = true;
+        if (this.reloadTimer) { clearTimeout(this.reloadTimer); this.reloadTimer = null; }
         
         try {
           const response = await fetch('/delete', {
@@ -630,8 +699,13 @@
           const result = await response.json();
           
           if (result.ok) {
-            this.updateStatus(`✅ User "${username}" deleted successfully`, 'success');
+            this.updateStatus(`✅ User "${username}" deleted successfully. Reloading in 5s...`, 'success');
             this.usernameInput.value = '';
+            // Reload after 5 seconds to reset for next person
+            if (this.reloadTimer) { clearTimeout(this.reloadTimer); }
+            this.reloadTimer = setTimeout(() => {
+              window.location.reload();
+            }, 5000);
           } else {
             throw new Error(result.error || 'Failed to delete user');
           }
@@ -639,6 +713,9 @@
         } catch (error) {
           console.error('Delete error:', error);
           this.showError(`Failed to delete user: ${error.message}`);
+        } finally {
+          // re-enable reload after operation completes
+          this.suppressReload = false;
         }
       }
 
@@ -676,71 +753,6 @@
       const app = new FaceAuthApp();
       app.init();
     });
-  async function login() {
-    if (!modelsLoaded) return alert('Models not loaded yet');
-    status.innerText = 'Scanning...';
-    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-                                    .withFaceLandmarks().withFaceDescriptor();
-    if (!detection) { status.innerText = 'No face detected'; return; }
-    const descriptor = Array.from(detection.descriptor);
-
-    const resp = await fetch('/match', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ descriptor })
-    });
-    const j = await resp.json();
-    if (j.ok) {
-      status.innerText = `Matched user: ${j.username} (distance ${j.distance.toFixed(4)})`;
-    } else {
-      status.innerText = `No match (closest: ${j.closest ?? 'none'})`;
-    }
-  }
-
-  // Delete user function
-  async function deleteUser() {
-    const username = usernameInput.value.trim();
-    if (!username) {
-      status.innerText = 'Please enter a username to delete';
-      return;
-    }
-
-    if (!confirm(`Are you sure you want to delete user '${username}'?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
-      });
-      
-      const result = await response.json();
-      status.innerText = result.ok 
-        ? result.message 
-        : `Error: ${result.error || 'Failed to delete user'}`;
-      
-      // Clear the username field after successful deletion
-      if (result.ok) {
-        usernameInput.value = '';
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      status.innerText = 'Error deleting user. Check console for details.';
-    }
-  }
-
-  // Event listeners
-  document.getElementById('enrollBtn').onclick = enroll;
-  document.getElementById('loginBtn').onclick = login;
-  document.getElementById('deleteBtn').onclick = deleteUser;
-
-  // init
-  (async () => {
-    await loadModels();
-    await startVideo();
-  })();
   </script>
 </body>
 </html>
