@@ -616,6 +616,10 @@
               window.location.reload();
             }, 5000);
           } else {
+            if (result.error === 'already_enrolled' && result.username) {
+              this.updateStatus(`⚠️ This face is already enrolled as "${result.username}".`, 'error');
+              return;
+            }
             throw new Error(result.error || 'Failed to enroll');
           }
           

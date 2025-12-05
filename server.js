@@ -44,6 +44,20 @@ app.post('/enroll', (req, res) => {
   const { username, descriptor } = req.body;
   if (!username || !descriptor) return res.json({ ok:false, error:'missing' });
   const users = loadUsers();
+  // Prevent duplicate enrollment of the same face under different names
+  try {
+    let best = { username:null, distance: Infinity };
+    for (const [u,info] of Object.entries(users)){
+      const d = dist(descriptor, info.descriptor);
+      if (d < best.distance) best = { username: u, distance: d };
+    }
+    const DUP_THRESH = 0.5; // same as match threshold
+    if (best.username && best.distance <= DUP_THRESH && best.username !== username) {
+      return res.json({ ok:false, error:'already_enrolled', username: best.username, distance: best.distance });
+    }
+  } catch(e) {
+    // ignore check failures and proceed
+  }
   users[username] = { descriptor };
   saveUsers(users);
   res.json({ ok:true });
